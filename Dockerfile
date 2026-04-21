@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     pkg-config \
     libx11-dev \
-    libatlas-base-dev \
+    libopenblas-dev \
+    liblapack-dev \
     libgtk-3-dev \
     libboost-python-dev \
     && rm -rf /var/lib/apt/lists/*
