@@ -1,4 +1,4 @@
-# pig
+# FaceGuard
 
 A new Flutter project.
 
