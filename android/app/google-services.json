@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "820579898122",
+    "project_id": "facerecognition-54dc3",
+    "storage_bucket": "facerecognition-54dc3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:820579898122:android:0c88d11b715d7b293b60f3",
+        "android_client_info": {
+          "package_name": "com.pig.attendance.pig"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCm1dbf_YQhJVzktVMVj7tbU2xQmnORQ6c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
