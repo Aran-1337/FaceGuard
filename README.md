@@ -133,7 +133,7 @@ docker run -p 5000:5000 faceguard-backend
 **Abdelrahman Abdelglil**
 Junior Flutter Developer
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/YOUR_USERNAME)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/abdelrahman-abdelglil)
 [![GitHub](https://img.shields.io/badge/GitHub-Follow-black)](https://github.com/Aran-1337)
 
 ---
