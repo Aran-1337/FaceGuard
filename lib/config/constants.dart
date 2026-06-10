@@ -39,7 +39,7 @@ class AppConstants {
   // Face AI Backend Server
   static String get faceAiServerUrl {
     // Railway URL
-    const String productionServerUrl = 'https://faceguard-production.up.railway.app'; 
+    const String productionServerUrl = 'https://faceguard-production-b93d.up.railway.app'; 
 
     if (productionServerUrl.isNotEmpty) {
       return productionServerUrl;
