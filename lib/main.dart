@@ -75,7 +75,7 @@ void main() async {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
                       ),
-                      maxHeight: 250,
+                      constraints: const BoxConstraints(maxHeight: 250),
                       child: SingleChildScrollView(
                         child: Text(
                           '$e\n\n$stackTrace',
