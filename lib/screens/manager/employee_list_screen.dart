@@ -153,7 +153,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
 
                     // Department selection
                     DropdownButtonFormField<String>(
-                      value: selectedDepartment,
+                      initialValue: selectedDepartment,
                       decoration: const InputDecoration(
                         labelText: 'Department',
                         border: OutlineInputBorder(),
@@ -178,7 +178,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
 
                     // Position (filtered by department)
                     DropdownButtonFormField<String>(
-                      value: position.isEmpty ? null : position,
+                      initialValue: position.isEmpty ? null : position,
                       decoration: const InputDecoration(
                         labelText: 'Position',
                         border: OutlineInputBorder(),
@@ -200,7 +200,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
 
                     // Job Level
                     DropdownButtonFormField<String>(
-                      value: jobLevel.isEmpty ? null : jobLevel,
+                      initialValue: jobLevel.isEmpty ? null : jobLevel,
                       decoration: const InputDecoration(
                         labelText: 'Job Level',
                         border: OutlineInputBorder(),

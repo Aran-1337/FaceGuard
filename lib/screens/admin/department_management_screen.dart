@@ -66,7 +66,7 @@ class _DepartmentManagementScreenState
                   // Department Name Dropdown
                   if (existing == null) ...[
                     DropdownButtonFormField<String>(
-                      value: selectedDepartmentName,
+                      initialValue: selectedDepartmentName,
                       decoration: const InputDecoration(
                         labelText: 'Department Name',
                         border: OutlineInputBorder(),
@@ -158,7 +158,7 @@ class _DepartmentManagementScreenState
                               .toList();
 
                           return DropdownButtonFormField<String>(
-                            value: selectedManagerId,
+                            initialValue: selectedManagerId,
                             decoration: const InputDecoration(
                               hintText: 'Select a manager',
                               border: OutlineInputBorder(),
@@ -203,8 +203,9 @@ class _DepartmentManagementScreenState
                     isLoading: isLoading,
                     onPressed: () async {
                       if (!formKey.currentState!.validate()) return;
-                      if (existing == null && selectedDepartmentName == null)
+                      if (existing == null && selectedDepartmentName == null) {
                         return;
+                      }
 
                       setModalState(() => isLoading = true);
 

@@ -12,6 +12,8 @@ import '../employee/settings_screen.dart';
 import '../common/notification_screen.dart';
 import '../common/send_notification_screen.dart';
 import 'attendance_config_screen.dart';
+import 'leave_requests_screen.dart';
+import '../../models/leave_request_model.dart';
 
 class ManagerDashboard extends StatefulWidget {
   const ManagerDashboard({super.key});
@@ -56,12 +58,13 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          if (index == 1)
+          if (index == 1) {
             Navigator.pushNamed(context, AppRoutes.employeeList);
-          else if (index == 2)
+          } else if (index == 2) {
             Navigator.pushNamed(context, AppRoutes.attendanceReports);
-          else
+          } else {
             setState(() => _currentIndex = index);
+          }
         },
         type: BottomNavigationBarType.fixed,
         items: const [
@@ -297,6 +300,100 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            // Leave Requests Card (full width with pending badge)
+            StreamBuilder<List<LeaveRequestModel>>(
+              stream: _dbService.getManagerLeaveRequests(
+                  authProvider.currentUser?.uid ?? ''),
+              builder: (context, snapshot) {
+                final pendingCount = (snapshot.data ?? [])
+                    .where((r) => r.status == LeaveStatus.pending)
+                    .length;
+                return GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const LeaveRequestsScreen()),
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              const Color(0xFF6366F1).withValues(alpha: 0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.beach_access,
+                              color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Leave Requests',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                pendingCount > 0
+                                    ? '$pendingCount pending request${pendingCount > 1 ? 's' : ''}'
+                                    : 'No pending requests',
+                                style: TextStyle(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (pendingCount > 0)
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '$pendingCount',
+                              style: const TextStyle(
+                                color: Color(0xFF6366F1),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          )
+                        else
+                          const Icon(Icons.arrow_forward_ios,
+                              color: Colors.white, size: 16),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 24),
             // Today's Attendance
             Row(
@@ -358,16 +455,18 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
     return StreamBuilder<List<AttendanceModel>>(
       stream: _dbService.getAttendanceByDate(DateTime.now()),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return Center(child: CircularProgressIndicator());
+        }
         final attendance = snapshot.data!;
-        if (attendance.isEmpty)
+        if (attendance.isEmpty) {
           return Center(
             child: Padding(
               padding: EdgeInsets.all(32),
               child: Text('No attendance records today'),
             ),
           );
+        }
         return Column(
           children: attendance
               .take(5)

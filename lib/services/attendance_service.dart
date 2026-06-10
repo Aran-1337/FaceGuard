@@ -5,11 +5,9 @@ import 'package:uuid/uuid.dart';
 import '../config/constants.dart';
 import '../models/attendance_model.dart';
 import 'database_service.dart';
-import 'storage_service.dart';
 
 class AttendanceService {
   final DatabaseService _databaseService = DatabaseService();
-  final StorageService _storageService = StorageService();
   final _uuid = const Uuid();
 
 
@@ -34,9 +32,7 @@ class AttendanceService {
         return null;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      final position = await Geolocator.getCurrentPosition();
       return GeoPoint(position.latitude, position.longitude);
     } catch (e) {
       return null;
@@ -74,6 +70,7 @@ class AttendanceService {
     final double lat = config['companyLatitude'] ?? AppConstants.companyLatitude;
     final double lng = config['companyLongitude'] ?? AppConstants.companyLongitude;
     final double radius = (config['geofenceRadiusMeters'] ?? AppConstants.geofenceRadiusMeters).toDouble();
+    final bool requireGeofenceConfig = config['requireGeofence'] ?? true;
 
     final workStart = DateTime(
       now.year,
@@ -96,9 +93,10 @@ class AttendanceService {
     }
 
     final attendanceId = existingAttendance?.id ?? _uuid.v4();
+    final bool finalRequireGeofence = requireGeofence && requireGeofenceConfig;
 
     // Verify geofence if required
-    if (requireGeofence) {
+    if (finalRequireGeofence) {
       final distance = Geolocator.distanceBetween(
         location.latitude,
         location.longitude,
@@ -142,7 +140,7 @@ class AttendanceService {
       'time': Timestamp.fromDate(now),
       'location': location,
       'status': 'success',
-      'distance': requireGeofence ? Geolocator.distanceBetween(location.latitude, location.longitude, lat, lng) : 0,
+      'distance': finalRequireGeofence ? Geolocator.distanceBetween(location.latitude, location.longitude, lat, lng) : 0,
     };
 
     if (existingAttendance == null) {
@@ -193,8 +191,11 @@ class AttendanceService {
     }
 
     // Verify geofence if required
-    if (requireGeofence) {
-      final config = await _databaseService.getAttendanceConfig();
+    final config = await _databaseService.getAttendanceConfig();
+    final bool requireGeofenceConfig = config['requireGeofence'] ?? true;
+    final bool finalRequireGeofence = requireGeofence && requireGeofenceConfig;
+
+    if (finalRequireGeofence) {
       final double lat = config['companyLatitude'] ?? AppConstants.companyLatitude;
       final double lng = config['companyLongitude'] ?? AppConstants.companyLongitude;
       final double radius = (config['geofenceRadiusMeters'] ?? AppConstants.geofenceRadiusMeters).toDouble();
@@ -245,7 +246,7 @@ class AttendanceService {
       }
     }
 
-    final totalRecorded = stats.values.fold<int>(0, (sum, val) => sum + val);
+    final totalRecorded = stats.values.fold<int>(0, (total, val) => total + val);
     final daysRemaining = workingDays - totalRecorded;
 
     return {

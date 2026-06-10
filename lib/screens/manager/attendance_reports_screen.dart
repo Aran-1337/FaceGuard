@@ -123,13 +123,15 @@ class _AttendanceReportsScreenState extends State<AttendanceReportsScreen> {
             child: StreamBuilder<List<AttendanceModel>>(
               stream: _dbService.getAttendanceByDate(_selectedDate),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
+                }
                 final attendance = snapshot.data!;
-                if (attendance.isEmpty)
+                if (attendance.isEmpty) {
                   return Center(
                     child: Text('No attendance records for this date'),
                   );
+                }
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: attendance.length,

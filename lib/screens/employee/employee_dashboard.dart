@@ -11,6 +11,7 @@ import '../../widgets/common/stat_card.dart';
 import '../../widgets/common/loading_indicator.dart';
 import '../../services/spot_check_service.dart';
 import '../../services/database_service.dart';
+import '../../models/leave_request_model.dart';
 import '../common/notification_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
@@ -227,6 +228,10 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                 _buildMonthlyStats(attendanceProvider),
                 const SizedBox(height: 24),
 
+                // Leave Request Button
+                _buildLeaveRequestButton(),
+                const SizedBox(height: 24),
+
                 // Recent Activity
                 Text(
                   'Recent Activity',
@@ -341,7 +346,6 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
 
   Widget _buildTodayAttendanceCard(AttendanceProvider provider) {
     final attendance = provider.todayAttendance;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -522,6 +526,430 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
             const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLeaveRequestButton() {
+    return GestureDetector(
+      onTap: _showLeaveRequestSheet,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.beach_access,
+                  color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Request Leave',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Submit annual, sick, or emergency leave',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios,
+                color: Colors.white, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLeaveRequestSheet() {
+    final authProvider = context.read<AuthProvider>();
+    final employee = authProvider.currentEmployee;
+    final user = authProvider.currentUser;
+    if (employee == null || user == null) return;
+    if (employee.managerId == null || employee.managerId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No manager assigned. Please contact admin.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    LeaveType selectedType = LeaveType.annual;
+    DateTime? fromDate;
+    DateTime? toDate;
+    final reasonController = TextEditingController();
+    bool isLoading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (bCtx, setSheetState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(bCtx).viewInsets.bottom + 24,
+              left: 24,
+              right: 24,
+              top: 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Title
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.beach_access,
+                            color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Request Leave',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Leave Type
+                  const Text('Leave Type',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: LeaveType.values.map((type) {
+                      final isSelected = selectedType == type;
+                      return GestureDetector(
+                        onTap: () =>
+                            setSheetState(() => selectedType = type),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            gradient: isSelected
+                                ? const LinearGradient(
+                                    colors: [
+                                      Color(0xFF6366F1),
+                                      Color(0xFF8B5CF6)
+                                    ],
+                                  )
+                                : null,
+                            color: isSelected
+                                ? null
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            LeaveRequestModel(
+                              id: '',
+                              employeeId: '',
+                              employeeName: '',
+                              managerId: '',
+                              type: type,
+                              fromDate: DateTime.now(),
+                              toDate: DateTime.now(),
+                              reason: '',
+                              createdAt: DateTime.now(),
+                            ).typeLabel,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.black87,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  // Date pickers
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: bCtx,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now()
+                                  .add(const Duration(days: 365)),
+                            );
+                            if (picked != null) {
+                              setSheetState(() => fromDate = picked);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                  color: fromDate != null
+                                      ? const Color(0xFF6366F1)
+                                      : Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('From',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  fromDate != null
+                                      ? '${fromDate!.day}/${fromDate!.month}/${fromDate!.year}'
+                                      : 'Select date',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: fromDate != null
+                                        ? Colors.black87
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: bCtx,
+                              initialDate: fromDate ?? DateTime.now(),
+                              firstDate: fromDate ?? DateTime.now(),
+                              lastDate: DateTime.now()
+                                  .add(const Duration(days: 365)),
+                            );
+                            if (picked != null) {
+                              setSheetState(() => toDate = picked);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                  color: toDate != null
+                                      ? const Color(0xFF6366F1)
+                                      : Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('To',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  toDate != null
+                                      ? '${toDate!.day}/${toDate!.month}/${toDate!.year}'
+                                      : 'Select date',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: toDate != null
+                                        ? Colors.black87
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Reason
+                  const Text('Reason',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: reasonController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Describe the reason for your leave...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF6366F1)),
+                      ),
+                      contentPadding: const EdgeInsets.all(14),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Submit
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              if (fromDate == null || toDate == null) {
+                                ScaffoldMessenger.of(bCtx).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'Please select dates')),
+                                );
+                                return;
+                              }
+                              if (reasonController.text.trim().isEmpty) {
+                                ScaffoldMessenger.of(bCtx).showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                          Text('Please enter a reason')),
+                                );
+                                return;
+                              }
+                              setSheetState(() => isLoading = true);
+                              try {
+                                final requestId =
+                                    'leave_${DateTime.now().millisecondsSinceEpoch}';
+                                final request = LeaveRequestModel(
+                                  id: requestId,
+                                  employeeId: employee.id,
+                                  employeeName: user.name,
+                                  managerId: employee.managerId!,
+                                  type: selectedType,
+                                  fromDate: fromDate!,
+                                  toDate: toDate!,
+                                  reason: reasonController.text.trim(),
+                                  createdAt: DateTime.now(),
+                                );
+                                await _dbService
+                                    .createLeaveRequest(request);
+                                if (bCtx.mounted) {
+                                  Navigator.pop(bCtx);
+                                }
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          '✅ Leave request sent to your manager!'),
+                                      backgroundColor:
+                                          AppTheme.successColor,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                setSheetState(() => isLoading = false);
+                                if (bCtx.mounted) {
+                                  ScaffoldMessenger.of(bCtx).showSnackBar(
+                                    SnackBar(
+                                        content: Text('Error: $e'),
+                                        backgroundColor:
+                                            AppTheme.errorColor),
+                                  );
+                                }
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF6366F1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white),
+                            )
+                          : const Text(
+                              'Send Leave Request',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -734,7 +1162,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: history.length,
-            separatorBuilder: (_, __) => Divider(
+            separatorBuilder: (_, _) => Divider(
               height: 1,
               color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
             ),

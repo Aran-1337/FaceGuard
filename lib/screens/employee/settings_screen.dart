@@ -74,7 +74,7 @@ class SettingsScreen extends StatelessWidget {
                           backgroundImage: selectedImage != null
                               ? FileImage(selectedImage!)
                               : (photoUrl != null
-                                    ? NetworkImage(photoUrl!) as ImageProvider
+                                    ? NetworkImage(photoUrl) as ImageProvider
                                     : null),
                           child: selectedImage == null && photoUrl == null
                               ? Text(

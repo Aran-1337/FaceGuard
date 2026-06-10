@@ -7,7 +7,7 @@ class EmployeeProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
 
   List<EmployeeModel> _employees = [];
-  Map<String, UserModel> _userMap = {};
+  final Map<String, UserModel> _userMap = {};
   bool _isLoading = false;
   String? _error;
 

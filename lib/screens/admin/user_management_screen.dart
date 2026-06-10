@@ -124,7 +124,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
                     // Role Selection
                     DropdownButtonFormField<UserRole>(
-                      value: role,
+                      initialValue: role,
                       decoration: const InputDecoration(
                         labelText: 'Role',
                         border: OutlineInputBorder(),
@@ -143,7 +143,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
                     // Department Selection
                     DropdownButtonFormField<String>(
-                      value: selectedDepartment,
+                      initialValue: selectedDepartment,
                       decoration: const InputDecoration(
                         labelText: 'Department',
                         border: OutlineInputBorder(),
@@ -208,7 +208,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               .where((u) => u.role == UserRole.manager)
                               .toList();
                           return DropdownButtonFormField<String>(
-                            value: selectedManagerId,
+                            initialValue: selectedManagerId,
                             decoration: const InputDecoration(
                               labelText: 'Assign Manager',
                               border: OutlineInputBorder(),
@@ -232,7 +232,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: position.isEmpty ? null : position,
+                        initialValue: position.isEmpty ? null : position,
                         decoration: const InputDecoration(
                           labelText: 'Position',
                           border: OutlineInputBorder(),
@@ -260,7 +260,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
                       // Job Level
                       DropdownButtonFormField<String>(
-                        value: jobLevel.isEmpty ? null : jobLevel,
+                        initialValue: jobLevel.isEmpty ? null : jobLevel,
                         decoration: const InputDecoration(
                           labelText: 'Job Level',
                           border: OutlineInputBorder(),
@@ -454,7 +454,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
                 // Department
                 DropdownButtonFormField<String>(
-                  value: selectedDepartment,
+                  initialValue: selectedDepartment,
                   decoration: const InputDecoration(
                     labelText: 'Department',
                     border: OutlineInputBorder(),
@@ -534,14 +534,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   user.uid,
                                   hardDelete: true,
                                 );
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('${user.name} deleted'),
-                                      backgroundColor: AppTheme.errorColor,
-                                    ),
-                                  );
-                                }
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('${user.name} deleted'),
+                                    backgroundColor: AppTheme.errorColor,
+                                  ),
+                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.errorColor,
@@ -618,8 +617,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             child: StreamBuilder<List<UserModel>>(
               stream: _dbService.getUsers(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
+                }
                 var users = snapshot.data!.where((u) {
                   bool matchesSearch =
                       _searchQuery.isEmpty ||
@@ -629,8 +629,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       _roleFilter == 'all' || u.role.name == _roleFilter;
                   return matchesSearch && matchesRole;
                 }).toList();
-                if (users.isEmpty)
+                if (users.isEmpty) {
                   return const Center(child: Text('No users found'));
+                }
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: users.length,

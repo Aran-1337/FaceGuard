@@ -15,6 +15,7 @@ class AppConstants {
   static const String departmentsCollection = 'departments';
   static const String notificationsCollection = 'notifications';
   static const String spotChecksCollection = 'spot_checks';
+  static const String leaveRequestsCollection = 'leave_requests';
 
   // Storage Paths
   static const String profileImagesPath = 'profile_images';
@@ -37,8 +38,8 @@ class AppConstants {
 
   // Face AI Backend Server
   static String get faceAiServerUrl {
-    // TODO: Paste your Railway URL here once deployed, for example: 'https://your-app.up.railway.app'
-    const String productionServerUrl = ''; 
+    // Railway URL
+    const String productionServerUrl = 'https://faceguard-production.up.railway.app'; 
 
     if (productionServerUrl.isNotEmpty) {
       return productionServerUrl;

@@ -82,8 +82,9 @@ class _SalaryManagementScreenState extends State<SalaryManagementScreen> {
             child: StreamBuilder<List<SalaryModel>>(
               stream: _dbService.getSalariesByMonth(_selectedMonth),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
+                }
                 var salaries = snapshot.data!
                     .where(
                       (s) =>
@@ -91,10 +92,11 @@ class _SalaryManagementScreenState extends State<SalaryManagementScreen> {
                           s.status.name == _statusFilter,
                     )
                     .toList();
-                if (salaries.isEmpty)
+                if (salaries.isEmpty) {
                   return Center(
                     child: Text('No salary records for this month'),
                   );
+                }
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: salaries.length,

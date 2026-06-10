@@ -9,20 +9,33 @@ class StorageService {
   // Upload profile image
   Future<String> uploadProfileImage(String userId, File imageFile) async {
     try {
-      final extension = path.extension(imageFile.path);
+      final extension = path.extension(imageFile.path).toLowerCase();
+      final String fileName = '${userId}_profile${extension.isEmpty ? '.jpg' : extension}';
       final ref = _storage
           .ref()
           .child(AppConstants.profileImagesPath)
-          .child('$userId$extension');
+          .child(fileName);
 
-      final uploadTask = await ref.putFile(
-        imageFile,
-        SettableMetadata(contentType: 'image/${extension.replaceAll('.', '')}'),
+      final bytes = await imageFile.readAsBytes();
+      final metadata = SettableMetadata(
+        contentType: extension == '.png' ? 'image/png' : 'image/jpeg',
       );
 
-      return await uploadTask.ref.getDownloadURL();
+      final uploadTask = await ref.putData(bytes, metadata);
+
+      // Add a small delay to ensure Firebase finishes propagating the file
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      try {
+        return await uploadTask.ref.getDownloadURL();
+      } catch (e) {
+        if (e.toString().contains('object-not-found')) {
+           throw Exception('Firebase Storage is likely NOT initialized! Please go to your Firebase Console -> Build -> Storage -> Click "Get Started" to create your bucket. Then try again.');
+        }
+        rethrow;
+      }
     } catch (e) {
-      throw Exception('Failed to upload profile image: $e');
+      throw Exception('$e');
     }
   }
 
@@ -33,21 +46,33 @@ class StorageService {
     File imageFile,
   ) async {
     try {
-      final extension = path.extension(imageFile.path);
+      final extension = path.extension(imageFile.path).toLowerCase();
+      final String fileName = '$attendanceId${extension.isEmpty ? '.jpg' : extension}';
       final ref = _storage
           .ref()
           .child(AppConstants.attendanceImagesPath)
           .child(employeeId)
-          .child('$attendanceId$extension');
+          .child(fileName);
 
-      final uploadTask = await ref.putFile(
-        imageFile,
-        SettableMetadata(contentType: 'image/${extension.replaceAll('.', '')}'),
+      final bytes = await imageFile.readAsBytes();
+      final metadata = SettableMetadata(
+        contentType: extension == '.png' ? 'image/png' : 'image/jpeg',
       );
 
-      return await uploadTask.ref.getDownloadURL();
+      final uploadTask = await ref.putData(bytes, metadata);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      try {
+        return await uploadTask.ref.getDownloadURL();
+      } catch (e) {
+        if (e.toString().contains('object-not-found')) {
+           throw Exception('Firebase Storage is likely NOT initialized! Go to Firebase Console -> Storage -> Get Started.');
+        }
+        rethrow;
+      }
     } catch (e) {
-      throw Exception('Failed to upload attendance photo: $e');
+      throw Exception('$e');
     }
   }
 
@@ -55,21 +80,32 @@ class StorageService {
   Future<String> uploadFaceData(String employeeId, File faceImage) async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final extension = path.extension(faceImage.path);
+      final extension = path.extension(faceImage.path).toLowerCase();
       final ref = _storage
           .ref()
           .child(AppConstants.faceDataPath)
           .child(employeeId)
-          .child('$timestamp$extension');
+          .child('$timestamp${extension.isEmpty ? '.jpg' : extension}');
 
-      final uploadTask = await ref.putFile(
-        faceImage,
-        SettableMetadata(contentType: 'image/${extension.replaceAll('.', '')}'),
+      final bytes = await faceImage.readAsBytes();
+      final metadata = SettableMetadata(
+        contentType: extension == '.png' ? 'image/png' : 'image/jpeg',
       );
 
-      return await uploadTask.ref.getDownloadURL();
+      final uploadTask = await ref.putData(bytes, metadata);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      try {
+        return await uploadTask.ref.getDownloadURL();
+      } catch (e) {
+        if (e.toString().contains('object-not-found')) {
+           throw Exception('Firebase Storage is likely NOT initialized! Go to Firebase Console -> Storage -> Get Started.');
+        }
+        rethrow;
+      }
     } catch (e) {
-      throw Exception('Failed to upload face data: $e');
+      throw Exception('$e');
     }
   }
 
@@ -83,19 +119,19 @@ class StorageService {
 
     for (int i = 0; i < photos.length; i++) {
       try {
-        final extension = path.extension(photos[i].path);
+        final extension = path.extension(photos[i].path).toLowerCase();
         final ref = _storage
             .ref()
             .child('face_training')
             .child(userId)
-            .child('${timestamp}_$i$extension');
+            .child('${timestamp}_$i${extension.isEmpty ? '.jpg' : extension}');
 
-        final uploadTask = await ref.putFile(
-          photos[i],
-          SettableMetadata(
-            contentType: 'image/${extension.replaceAll('.', '')}',
-          ),
+        final bytes = await photos[i].readAsBytes();
+        final metadata = SettableMetadata(
+          contentType: extension == '.png' ? 'image/png' : 'image/jpeg',
         );
+
+        final uploadTask = await ref.putData(bytes, metadata);
 
         final url = await uploadTask.ref.getDownloadURL();
         urls.add(url);

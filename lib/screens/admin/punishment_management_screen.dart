@@ -52,7 +52,7 @@ class _PunishmentManagementScreenState
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<PunishmentType>(
-              value: type,
+              initialValue: type,
               decoration: InputDecoration(labelText: 'Type'),
               items: PunishmentType.values
                   .map(
@@ -91,7 +91,8 @@ class _PunishmentManagementScreenState
                   issuedBy: 'admin',
                 );
                 await _dbService.createPunishment(punishment);
-                if (mounted) Navigator.pop(context);
+                if (!context.mounted) return;
+                Navigator.pop(context);
               },
             ),
             const SizedBox(height: 20),
@@ -132,15 +133,17 @@ class _PunishmentManagementScreenState
             child: StreamBuilder<List<PunishmentModel>>(
               stream: _dbService.getAllPunishments(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
+                }
                 var punishments = snapshot.data!
                     .where(
                       (p) => _typeFilter == 'all' || p.type.name == _typeFilter,
                     )
                     .toList();
-                if (punishments.isEmpty)
+                if (punishments.isEmpty) {
                   return Center(child: Text('No punishments found'));
+                }
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: punishments.length,

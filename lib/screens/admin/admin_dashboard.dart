@@ -38,12 +38,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          if (index == 1)
+          if (index == 1) {
             Navigator.pushNamed(context, AppRoutes.userManagement);
-          else if (index == 2)
+          } else if (index == 2) {
             Navigator.pushNamed(context, AppRoutes.salaryManagement);
-          else
+          } else {
             setState(() => _currentIndex = index);
+          }
         },
         type: BottomNavigationBarType.fixed,
         items: const [

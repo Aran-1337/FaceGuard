@@ -618,40 +618,205 @@ class _ProfileScreenState extends State<ProfileScreen>
     return StreamBuilder<List<SalaryModel>>(
       stream: _dbService.getEmployeeSalaries(employeeId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final salaries = snapshot.data!;
-        if (salaries.isEmpty)
-          return const Center(child: Text('No salary records'));
+        if (salaries.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.account_balance_wallet_outlined,
+                    size: 56, color: Colors.grey.shade300),
+                const SizedBox(height: 16),
+                const Text('No salary records yet',
+                    style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+          );
+        }
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: salaries.length,
           itemBuilder: (context, index) {
             final salary = salaries[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: Icon(
-                  salary.status == SalaryStatus.paid
-                      ? Icons.check_circle
-                      : Icons.pending,
-                  color: salary.status == SalaryStatus.paid
-                      ? AppTheme.successColor
-                      : AppTheme.warningColor,
+            final isPaid = salary.status == SalaryStatus.paid;
+            final isPending = salary.status == SalaryStatus.pending;
+            final statusColor = isPaid
+                ? AppTheme.successColor
+                : isPending
+                    ? AppTheme.warningColor
+                    : AppTheme.errorColor;
+            final statusIcon = isPaid
+                ? Icons.check_circle
+                : isPending
+                    ? Icons.schedule
+                    : Icons.warning;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: statusColor.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(
+                  color: statusColor.withValues(alpha: 0.25),
                 ),
-                title: Text(salary.monthName),
-                subtitle: Text('Net: \$${salary.netAmount.toStringAsFixed(2)}'),
-                trailing: Chip(
-                  label: Text(salary.status.name.toUpperCase()),
-                  backgroundColor: salary.status == SalaryStatus.paid
-                      ? AppTheme.successColor.withValues(alpha: 0.1)
-                      : AppTheme.warningColor.withValues(alpha: 0.1),
-                ),
+              ),
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.08),
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(statusIcon, color: statusColor, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            salary.monthName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            isPaid ? '✅ Received' : salary.status.name.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Breakdown
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildSalaryRow('Base Salary',
+                            '\$${salary.amount.toStringAsFixed(2)}',
+                            Icons.monetization_on_outlined,
+                            Colors.blue),
+                        if (salary.deductions > 0)
+                          _buildSalaryRow('Deductions',
+                              '-\$${salary.deductions.toStringAsFixed(2)}',
+                              Icons.remove_circle_outline,
+                              AppTheme.errorColor),
+                        if (salary.bonus > 0)
+                          _buildSalaryRow('Bonus',
+                              '+\$${salary.bonus.toStringAsFixed(2)}',
+                              Icons.card_giftcard,
+                              AppTheme.successColor),
+                        const Divider(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Net Salary',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16)),
+                            Text(
+                              '\$${salary.netAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: statusColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (isPaid && salary.paidAt != null) ...
+                          [
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(Icons.access_time,
+                                    size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Paid on ${DateFormat('MMM d, yyyy').format(salary.paidAt!)}',
+                                  style: const TextStyle(
+                                      color: Colors.grey, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ],
+                        if (salary.notes != null &&
+                            salary.notes!.isNotEmpty) ...
+                          [
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                salary.notes!,
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey),
+                              ),
+                            ),
+                          ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildSalaryRow(
+      String label, String value, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(label,
+                style:
+                    const TextStyle(color: Colors.grey, fontSize: 13)),
+          ),
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: color)),
+        ],
+      ),
     );
   }
 
@@ -662,21 +827,36 @@ class _ProfileScreenState extends State<ProfileScreen>
     return StreamBuilder<List<PunishmentModel>>(
       stream: _dbService.getEmployeePunishments(employeeId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final punishments = snapshot.data!;
         if (punishments.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.check_circle,
-                  size: 48,
-                  color: AppTheme.successColor,
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.successColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.verified_user,
+                    size: 48,
+                    color: AppTheme.successColor,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text('No punishments! Great job!'),
+                const Text(
+                  'Clean Record!',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 4),
+                const Text('No punishments on your record.',
+                    style: TextStyle(color: Colors.grey)),
               ],
             ),
           );
@@ -686,18 +866,203 @@ class _ProfileScreenState extends State<ProfileScreen>
           itemCount: punishments.length,
           itemBuilder: (context, index) {
             final p = punishments[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: Icon(
-                  p.type == PunishmentType.warning
-                      ? Icons.warning
-                      : Icons.money_off,
-                  color: AppTheme.errorColor,
-                ),
-                title: Text(p.typeLabel),
-                subtitle: Text(p.reason),
-                trailing: Text(DateFormat('MMM d').format(p.issuedAt)),
+            Color typeColor;
+            IconData typeIcon;
+            switch (p.type) {
+              case PunishmentType.warning:
+                typeColor = AppTheme.warningColor;
+                typeIcon = Icons.warning_amber_rounded;
+                break;
+              case PunishmentType.fine:
+                typeColor = AppTheme.errorColor;
+                typeIcon = Icons.money_off;
+                break;
+              case PunishmentType.suspension:
+                typeColor = const Color(0xFF7C3AED);
+                typeIcon = Icons.block;
+                break;
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: typeColor.withValues(alpha: 0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(
+                    color: typeColor.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.08),
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(typeIcon, color: typeColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          p.typeLabel,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: typeColor,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          DateFormat('MMM d, yyyy').format(p.issuedAt),
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Details
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Reason
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline,
+                                size: 16, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                p.reason,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Fine amount
+                        if (p.type == PunishmentType.fine &&
+                            p.fineAmount != null) ...
+                          [
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.errorColor
+                                    .withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: AppTheme.errorColor
+                                        .withValues(alpha: 0.2)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.money_off,
+                                      size: 18,
+                                      color: AppTheme.errorColor),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Fine Amount: \$${p.fineAmount!.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.errorColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        // Suspension days
+                        if (p.type == PunishmentType.suspension &&
+                            p.suspensionDays != null) ...
+                          [
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF7C3AED)
+                                    .withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: const Color(0xFF7C3AED)
+                                        .withValues(alpha: 0.2)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.block,
+                                      size: 18,
+                                      color: Color(0xFF7C3AED)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Suspension: ${p.suspensionDays} day(s)',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF7C3AED),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        const SizedBox(height: 10),
+                        // Active badge
+                        Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.person_outline,
+                                    size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Issued by: ${p.issuedBy}',
+                                  style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: p.isActive
+                                    ? AppTheme.errorColor
+                                        .withValues(alpha: 0.1)
+                                    : Colors.grey.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                p.isActive ? 'Active' : 'Resolved',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: p.isActive
+                                      ? AppTheme.errorColor
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
           },

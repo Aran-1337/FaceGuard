@@ -27,6 +27,7 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
   final MapController _mapController = MapController();
   double _radius = 100.0;
   LatLng _mapCenter = const LatLng(30.0444, 31.2357);
+  bool _requireGeofence = true;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
         _lngController.text = lng.toString();
         _mapCenter = LatLng(lat, lng);
         _radius = (config['geofenceRadiusMeters'] ?? 100.0).toDouble();
+        _requireGeofence = config['requireGeofence'] ?? true;
         _isLoading = false;
       });
     } catch (e) {
@@ -160,10 +162,55 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
                   ),
                   const SizedBox(height: 28),
 
+                  // Require Geofence Toggle
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: SwitchListTile(
+                      title: const Text(
+                        'Require Location for Check-in',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        _requireGeofence
+                            ? 'Employees must be within company boundaries'
+                            : 'Employees can check in from anywhere (Remote/Test)',
+                        style: TextStyle(
+                          color: _requireGeofence ? AppTheme.greyColor : AppTheme.warningColor,
+                          fontSize: 13,
+                        ),
+                      ),
+                      value: _requireGeofence,
+                      activeThumbColor: AppTheme.successColor,
+                      onChanged: (val) {
+                        setState(() => _requireGeofence = val);
+                      },
+                      secondary: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: (_requireGeofence ? AppTheme.successColor : AppTheme.warningColor).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _requireGeofence ? Icons.location_on : Icons.location_off,
+                          color: _requireGeofence ? AppTheme.successColor : AppTheme.warningColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
                   // Company Location Section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                  if (_requireGeofence) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                       Row(
                         children: [
                           const Icon(Icons.location_on, color: AppTheme.primaryColor),
@@ -331,6 +378,7 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
                       ),
                     ],
                   ),
+                  ],
                   const Divider(height: 48),
 
                   // Work Start Time
@@ -509,10 +557,16 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          '• Company Area: ${_radius.round()}m from ${_latController.text}, ${_lngController.text}',
-                          style: const TextStyle(fontSize: 13),
-                        ),
+                        if (_requireGeofence)
+                          Text(
+                            '• Company Area: ${_radius.round()}m from ${_latController.text}, ${_lngController.text}',
+                            style: const TextStyle(fontSize: 13),
+                          )
+                        else
+                          const Text(
+                            '• Company Area: Disabled (Remote Check-in Allowed)',
+                            style: TextStyle(fontSize: 13, color: AppTheme.warningColor, fontWeight: FontWeight.bold),
+                          ),
                         Text(
                           '• On Time: Check-in before ${_formatTime(_workStartTime)}',
                           style: const TextStyle(fontSize: 13),
@@ -615,6 +669,7 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
         'companyLatitude': double.tryParse(_latController.text) ?? 30.0444,
         'companyLongitude': double.tryParse(_lngController.text) ?? 31.2357,
         'geofenceRadiusMeters': _radius,
+        'requireGeofence': _requireGeofence,
         'updatedAt': DateTime.now().toIso8601String(),
       });
 

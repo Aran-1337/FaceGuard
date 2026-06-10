@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
     appId: '1:820579898122:web:a1b2c3d4e5f6a7b8c9d0e1',
     messagingSenderId: '820579898122',
     projectId: 'facerecognition-54dc3',
-    storageBucket: 'facerecognition-54dc3.firebasestorage.app',
+    storageBucket: 'facerecognition-54dc3.appspot.com',
     authDomain: 'facerecognition-54dc3.firebaseapp.com',
   );
 
@@ -60,7 +60,7 @@ class DefaultFirebaseOptions {
     appId: '1:820579898122:android:0c88d11b715d7b293b60f3',
     messagingSenderId: '820579898122',
     projectId: 'facerecognition-54dc3',
-    storageBucket: 'facerecognition-54dc3.firebasestorage.app',
+    storageBucket: 'facerecognition-54dc3.appspot.com',
   );
 
 }

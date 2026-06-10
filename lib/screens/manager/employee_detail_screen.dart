@@ -28,11 +28,12 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         ? employeeProvider.userMap[employee.userId]
         : null;
 
-    if (employee == null)
+    if (employee == null) {
       return Scaffold(
         appBar: AppBar(),
         body: Center(child: Text('Employee not found')),
       );
+    }
 
     return Scaffold(
       body: CustomScrollView(

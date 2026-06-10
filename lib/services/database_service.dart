@@ -7,6 +7,7 @@ import '../models/salary_model.dart';
 import '../models/punishment_model.dart';
 import '../models/department_model.dart';
 import '../models/notification_model.dart';
+import '../models/leave_request_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -378,22 +379,58 @@ class DatabaseService {
         );
   }
 
-  // Mark salary as paid
-  Future<void> markSalaryAsPaid(String salaryId) async {
+  // Mark salary as paid — also sends notification to employee
+  Future<void> markSalaryAsPaid(String salaryId, {String employeeUserId = '', String employeeName = '', double netAmount = 0, String monthName = ''}) async {
     await _firestore
         .collection(AppConstants.salariesCollection)
         .doc(salaryId)
         .update({'status': SalaryStatus.paid.name, 'paidAt': Timestamp.now()});
+
+    // Send in-app notification to the employee
+    if (employeeUserId.isNotEmpty) {
+      final notification = NotificationModel(
+        id: 'salary_${salaryId}_notif',
+        title: '💰 Salary Received',
+        message: 'Your salary for $monthName has been transferred.\nNet amount: \$${netAmount.toStringAsFixed(2)}',
+        senderId: 'system',
+        senderName: 'Payroll System',
+        recipientIds: [employeeUserId],
+        sendToAll: false,
+        createdAt: DateTime.now(),
+      );
+      await sendNotification(notification);
+    }
   }
 
   // ==================== PUNISHMENT OPERATIONS ====================
 
-  // Create punishment
-  Future<void> createPunishment(PunishmentModel punishment) async {
+  // Create punishment — also sends notification to employee
+  Future<void> createPunishment(PunishmentModel punishment, {String employeeUserId = ''}) async {
     await _firestore
         .collection(AppConstants.punishmentsCollection)
         .doc(punishment.id)
         .set(punishment.toFirestore());
+
+    // Send in-app notification to the employee
+    if (employeeUserId.isNotEmpty) {
+      String detail = '';
+      if (punishment.type == PunishmentType.fine && punishment.fineAmount != null) {
+        detail = '\nFine amount: \$${punishment.fineAmount!.toStringAsFixed(2)}';
+      } else if (punishment.type == PunishmentType.suspension && punishment.suspensionDays != null) {
+        detail = '\nSuspension: ${punishment.suspensionDays} day(s)';
+      }
+      final notification = NotificationModel(
+        id: 'punishment_${punishment.id}_notif',
+        title: '⚠️ ${punishment.typeLabel} Issued',
+        message: 'Reason: ${punishment.reason}$detail',
+        senderId: punishment.issuedBy,
+        senderName: 'Management',
+        recipientIds: [employeeUserId],
+        sendToAll: false,
+        createdAt: DateTime.now(),
+      );
+      await sendNotification(notification);
+    }
   }
 
   // Get employee punishments
@@ -596,6 +633,7 @@ class DatabaseService {
         'companyLatitude': AppConstants.companyLatitude,
         'companyLongitude': AppConstants.companyLongitude,
         'geofenceRadiusMeters': AppConstants.geofenceRadiusMeters,
+        'requireGeofence': true,
       };
     }
 
@@ -627,9 +665,96 @@ class DatabaseService {
           'companyLatitude': AppConstants.companyLatitude,
           'companyLongitude': AppConstants.companyLongitude,
           'geofenceRadiusMeters': AppConstants.geofenceRadiusMeters,
+          'requireGeofence': true,
         };
       }
       return doc.data()!;
     });
+  }
+  // ==================== LEAVE REQUEST OPERATIONS ====================
+
+  // Create leave request
+  Future<void> createLeaveRequest(LeaveRequestModel request) async {
+    await _firestore
+        .collection(AppConstants.leaveRequestsCollection)
+        .doc(request.id)
+        .set(request.toFirestore());
+
+    // Notify the manager
+    final notification = NotificationModel(
+      id: 'leave_${request.id}_notif',
+      title: '📋 New Leave Request',
+      message: '${request.employeeName} has requested ${request.typeLabel} from ${_formatDate(request.fromDate)} to ${_formatDate(request.toDate)}.\nReason: ${request.reason}',
+      senderId: request.employeeId,
+      senderName: request.employeeName,
+      recipientIds: [request.managerId],
+      sendToAll: false,
+      createdAt: DateTime.now(),
+    );
+    await sendNotification(notification);
+  }
+
+  // Get leave requests for an employee
+  Stream<List<LeaveRequestModel>> getEmployeeLeaveRequests(String employeeId) {
+    return _firestore
+        .collection(AppConstants.leaveRequestsCollection)
+        .where('employeeId', isEqualTo: employeeId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => LeaveRequestModel.fromFirestore(doc))
+            .toList());
+  }
+
+  // Get leave requests for a manager
+  Stream<List<LeaveRequestModel>> getManagerLeaveRequests(String managerId) {
+    return _firestore
+        .collection(AppConstants.leaveRequestsCollection)
+        .where('managerId', isEqualTo: managerId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => LeaveRequestModel.fromFirestore(doc))
+            .toList());
+  }
+
+  // Approve or reject a leave request — notifies the employee
+  Future<void> updateLeaveRequestStatus(
+    String requestId,
+    LeaveStatus status,
+    String employeeUserId,
+    String employeeName,
+    String managerId, {
+    String note = '',
+  }) async {
+    await _firestore
+        .collection(AppConstants.leaveRequestsCollection)
+        .doc(requestId)
+        .update({
+      'status': status.name,
+      'respondedAt': Timestamp.now(),
+      'managerNote': note.isNotEmpty ? note : null,
+    });
+
+    // Notify the employee
+    final isApproved = status == LeaveStatus.approved;
+    final notification = NotificationModel(
+      id: 'leave_resp_${requestId}_notif',
+      title: isApproved ? '✅ Leave Approved' : '❌ Leave Rejected',
+      message: isApproved
+          ? 'Your leave request has been approved.${note.isNotEmpty ? '\nNote: $note' : ''}'
+          : 'Your leave request has been rejected.${note.isNotEmpty ? '\nReason: $note' : ''}',
+      senderId: managerId,
+      senderName: 'Your Manager',
+      recipientIds: [employeeUserId],
+      sendToAll: false,
+      createdAt: DateTime.now(),
+    );
+    await sendNotification(notification);
+  }
+
+  String _formatDate(DateTime date) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${months[date.month - 1]} ${date.day}';
   }
 }

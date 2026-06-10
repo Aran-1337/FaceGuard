@@ -91,7 +91,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
                 title: const Text('Send to All'),
                 subtitle: const Text('Notify every user in the system'),
                 value: _sendToAll,
-                activeColor: AppTheme.primaryColor,
+                activeThumbColor: AppTheme.primaryColor,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 onChanged: (v) => setState(() => _sendToAll = v),
