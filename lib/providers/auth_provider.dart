@@ -11,7 +11,7 @@ class AuthProvider extends ChangeNotifier {
 
   UserModel? _currentUser;
   EmployeeModel? _currentEmployee;
-  bool _isLoading = false;
+  bool _isLoading = true;
   String? _error;
 
   // Getters
@@ -35,6 +35,7 @@ class AuthProvider extends ChangeNotifier {
       } else {
         _currentUser = null;
         _currentEmployee = null;
+        _isLoading = false;
         notifyListeners();
       }
     });
