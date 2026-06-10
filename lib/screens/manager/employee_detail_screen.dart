@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 import '../../config/theme.dart';
 import '../../providers/employee_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/attendance_model.dart';
+import '../../models/punishment_model.dart';
 import '../../services/database_service.dart';
 import '../../widgets/common/stat_card.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -146,17 +149,17 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: Icon(Icons.warning),
-                          label: Text('Add Warning'),
+                          onPressed: () => _showAddWarningDialog(context),
+                          icon: const Icon(Icons.warning),
+                          label: const Text('Add Warning'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: Icon(Icons.calendar_today),
-                          label: Text('Mark Absent'),
+                          onPressed: () => _handleMarkAbsent(context),
+                          icon: const Icon(Icons.calendar_today),
+                          label: const Text('Mark Absent'),
                         ),
                       ),
                     ],
@@ -168,6 +171,206 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         ],
       ),
     );
+  }
+
+  void _showAddWarningDialog(BuildContext context) {
+    final outerContext = context;
+    final authProvider = Provider.of<AuthProvider>(outerContext, listen: false);
+    final currentUserName = authProvider.currentUser?.name ?? 'Manager';
+    
+    PunishmentType selectedType = PunishmentType.warning;
+    final reasonController = TextEditingController();
+    final fineController = TextEditingController();
+    bool isSaving = false;
+
+    showDialog(
+      context: outerContext,
+      builder: (dCtx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Add Punishment/Warning'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<PunishmentType>(
+                  value: selectedType,
+                  decoration: const InputDecoration(labelText: 'Type'),
+                  items: PunishmentType.values
+                      .map((t) => DropdownMenuItem(
+                            value: t,
+                            child: Text(t.name.toUpperCase()),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() => selectedType = v);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason',
+                    hintText: 'Enter reason for this action',
+                  ),
+                  maxLines: 3,
+                ),
+                if (selectedType == PunishmentType.fine) ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: fineController,
+                    decoration: const InputDecoration(
+                      labelText: 'Fine Amount',
+                      hintText: 'Enter amount to deduct',
+                      prefixText: r'$',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      final reason = reasonController.text.trim();
+                      if (reason.isEmpty) {
+                        ScaffoldMessenger.of(outerContext).showSnackBar(
+                          const SnackBar(content: Text('Please enter a reason')),
+                        );
+                        return;
+                      }
+
+                      double? fineAmount;
+                      if (selectedType == PunishmentType.fine) {
+                        fineAmount = double.tryParse(fineController.text.trim());
+                        if (fineAmount == null || fineAmount <= 0) {
+                          ScaffoldMessenger.of(outerContext).showSnackBar(
+                            const SnackBar(content: Text('Please enter a valid fine amount')),
+                          );
+                          return;
+                        }
+                      }
+
+                      setState(() => isSaving = true);
+
+                      try {
+                        final punishment = PunishmentModel(
+                          id: const Uuid().v4(),
+                          employeeId: widget.employeeId,
+                          type: selectedType,
+                          reason: reason,
+                          fineAmount: fineAmount,
+                          issuedAt: DateTime.now(),
+                          issuedBy: currentUserName,
+                        );
+
+                        await _dbService.createPunishment(punishment);
+                        
+                        if (outerContext.mounted) {
+                          Navigator.pop(dCtx);
+                          ScaffoldMessenger.of(outerContext).showSnackBar(
+                            const SnackBar(
+                              content: Text('Punishment added successfully'),
+                              backgroundColor: AppTheme.successColor,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setState(() => isSaving = false);
+                        if (outerContext.mounted) {
+                          ScaffoldMessenger.of(outerContext).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: AppTheme.errorColor,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+              ),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleMarkAbsent(BuildContext context) async {
+    final outerContext = context;
+    final confirmed = await showDialog<bool>(
+      context: outerContext,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Mark Absent'),
+        content: const Text('Are you sure you want to mark this employee as absent for today?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && outerContext.mounted) {
+      try {
+        final today = DateTime.now();
+        final dateOnly = DateTime(today.year, today.month, today.day);
+        final attendanceId = '${widget.employeeId}_${DateFormat('yyyyMMdd').format(today)}';
+        
+        final attendance = AttendanceModel(
+          id: attendanceId,
+          employeeId: widget.employeeId,
+          date: dateOnly,
+          status: AttendanceStatus.absent,
+          isApproved: true,
+          notes: 'Marked absent by manager',
+        );
+
+        await _dbService.recordAttendance(attendance);
+        
+        if (outerContext.mounted) {
+          ScaffoldMessenger.of(outerContext).showSnackBar(
+            const SnackBar(
+              content: Text('Employee marked absent for today'),
+              backgroundColor: AppTheme.successColor,
+            ),
+          );
+        }
+      } catch (e) {
+        if (outerContext.mounted) {
+          ScaffoldMessenger.of(outerContext).showSnackBar(
+            SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildRecentAttendance() {

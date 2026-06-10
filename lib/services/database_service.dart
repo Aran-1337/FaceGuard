@@ -268,13 +268,14 @@ class DatabaseService {
     return _firestore
         .collection(AppConstants.attendanceCollection)
         .where('employeeId', isEqualTo: employeeId)
-        .orderBy('date', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => AttendanceModel.fromFirestore(doc))
-              .toList(),
-        );
+              .toList();
+          list.sort((a, b) => b.date.compareTo(a.date)); // Local descending sort
+          return list;
+        });
   }
 
   // Get attendance for date range
@@ -288,13 +289,14 @@ class DatabaseService {
         .where('employeeId', isEqualTo: employeeId)
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
         .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-        .orderBy('date', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => AttendanceModel.fromFirestore(doc))
-              .toList(),
-        );
+              .toList();
+          list.sort((a, b) => b.date.compareTo(a.date)); // Local descending sort
+          return list;
+        });
   }
 
   // Get all attendance for a specific date (for managers/admins)
@@ -337,13 +339,14 @@ class DatabaseService {
     return _firestore
         .collection(AppConstants.salariesCollection)
         .where('employeeId', isEqualTo: employeeId)
-        .orderBy('month', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => SalaryModel.fromFirestore(doc))
-              .toList(),
-        );
+              .toList();
+          list.sort((a, b) => b.month.compareTo(a.month)); // Local descending sort
+          return list;
+        });
   }
 
   // Get latest salary for employee
@@ -351,12 +354,14 @@ class DatabaseService {
     final snapshot = await _firestore
         .collection(AppConstants.salariesCollection)
         .where('employeeId', isEqualTo: employeeId)
-        .orderBy('month', descending: true)
-        .limit(1)
         .get();
 
     if (snapshot.docs.isEmpty) return null;
-    return SalaryModel.fromFirestore(snapshot.docs.first);
+    final list = snapshot.docs
+        .map((doc) => SalaryModel.fromFirestore(doc))
+        .toList();
+    list.sort((a, b) => b.month.compareTo(a.month)); // Local descending sort
+    return list.first;
   }
 
   // Get all salaries for a month (admin)
@@ -438,13 +443,14 @@ class DatabaseService {
     return _firestore
         .collection(AppConstants.punishmentsCollection)
         .where('employeeId', isEqualTo: employeeId)
-        .orderBy('issuedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => PunishmentModel.fromFirestore(doc))
-              .toList(),
-        );
+              .toList();
+          list.sort((a, b) => b.issuedAt.compareTo(a.issuedAt)); // Local descending sort
+          return list;
+        });
   }
 
   // Get active punishments for employee
@@ -453,13 +459,14 @@ class DatabaseService {
         .collection(AppConstants.punishmentsCollection)
         .where('employeeId', isEqualTo: employeeId)
         .where('isActive', isEqualTo: true)
-        .orderBy('issuedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => PunishmentModel.fromFirestore(doc))
-              .toList(),
-        );
+              .toList();
+          list.sort((a, b) => b.issuedAt.compareTo(a.issuedAt)); // Local descending sort
+          return list;
+        });
   }
 
   // Get all punishments (admin)
@@ -699,11 +706,14 @@ class DatabaseService {
     return _firestore
         .collection(AppConstants.leaveRequestsCollection)
         .where('employeeId', isEqualTo: employeeId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => LeaveRequestModel.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => LeaveRequestModel.fromFirestore(doc))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Local descending sort
+          return list;
+        });
   }
 
   // Get leave requests for a manager
@@ -711,11 +721,14 @@ class DatabaseService {
     return _firestore
         .collection(AppConstants.leaveRequestsCollection)
         .where('managerId', isEqualTo: managerId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => LeaveRequestModel.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => LeaveRequestModel.fromFirestore(doc))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Local descending sort
+          return list;
+        });
   }
 
   // Approve or reject a leave request — notifies the employee

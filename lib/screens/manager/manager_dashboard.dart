@@ -301,6 +301,26 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
               ],
             ),
             const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionCard(
+                    'Salaries',
+                    Icons.attach_money,
+                    () => Navigator.pushNamed(context, AppRoutes.salaryManagement),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionCard(
+                    'Punishments',
+                    Icons.gavel,
+                    () => Navigator.pushNamed(context, AppRoutes.punishmentManagement),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             // Leave Requests Card (full width with pending badge)
             StreamBuilder<List<LeaveRequestModel>>(
               stream: _dbService.getManagerLeaveRequests(
